@@ -5,19 +5,30 @@ const userSchema = mongoose.Schema({
     lastname: String,
     email: String,
     gender: String,
-    dob: String,
+    dob: Date,
     department: String,
-    joiningdate: String,
-    mobileno1: String,
-    mobileno2: String,
+    joiningdate: Date,
+    mobileno1: Number,
+    mobileno2: Number,
     password: String,
     address1: String,
     address2: String,
-    emergencycontact1: String,
-    emergencycontact2: String,
-    emergencycontact3: String,
-    skills: [String],
-    aboutme: String 
+    emergencycontact1: Number,
+    emergencycontact2: Number,
+    emergencycontact3: Number,
+    skills: {
+        frontend: [],
+        backend: []
+    },
+    aboutme: String,
+    isDeleted: {
+        type: Boolean,
+        default: false,
+    },
+    deletedAt:{ 
+        type: Date,
+        default: null
+    },
 })
 
 module.exports = mongoose.model("User" , userSchema)
