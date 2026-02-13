@@ -8,6 +8,7 @@ const jwt = require('jsonwebtoken')
 const app = express()
 const middleware = require('../middleware/auth')
 const Activity = require('./models/activity-schema')
+const Report = require('./models/report.model')
 
 
 
@@ -58,51 +59,30 @@ app.put("/profile", middleware, async (req, res) => {
     }
 })
 
-// app.post("/activity", middleware, async (req, res) => {
-//     try {
+app.post("/report", middleware, async (req, res) => {
+    try {
+        const user_id = req.userId
+        const { start_time, end_time, break_duration_in_minutes, working_hours, total_hours, report } = req.body
 
-//         const userId = req.userId
-//         const now = new Date()
-//         const activeSession = await Activity.findOne({ user_id: userId, status: "active" })
+        const currentReport = await Report.create({
+            start_time, end_time, break_duration_in_minutes, report, working_hours, total_hours, user_id
+        })
 
-//         if (!activeSession) {
-//             const activity = await Activity.create({
-//                 user_id: userId,
-//                 activity_type: "punch_in",
-//                 description: "Punched In",
-//                 in_time: now,
-//                 out_time: null,
-//                 status: "active",
-//                 deleted_at: null
-//             })
+        res.status(201).json({
+            success: true,
+            message: "Report submited",
+            data: currentReport
+        })
 
-//             return res.json({
-//                 success: true,
-//                 message: "Punched in successfully",
-//                 data: activity
-//             })
-//         }
+    } catch (error) {
+        res.status(400).json({
+            success: false,
+            message: error.message,
+        })
+    }
+})
 
-//         activeSession.activity_type = "punch_out"
-//         activeSession.description = 'Punched out'
-//         activeSession.out_time = now
-//         activeSession.status = "complete"
 
-//         activeSession.save()
-
-//         res.json({
-//             success: true,
-//             message: "Punched out successfully",
-//             data: activeSession
-//         })
-
-//     } catch (error) {
-//         res.status(500).json({
-//             success: false,
-//             message: error.message
-//         })
-//     }
-// })
 
 app.post("/activity", middleware, async (req, res) => {
     try {
@@ -275,7 +255,7 @@ app.post("/activity", middleware, async (req, res) => {
 app.get("/activity/today", middleware, async (req, res) => {
     try {
         const userId = req.userId
-        const {fromDate, toDate} = req.query
+        const { fromDate, toDate } = req.query
 
         const startDate = fromDate ? new Date(fromDate) : new Date()
         const endDate = toDate ? new Date(toDate) : new Date()
