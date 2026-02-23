@@ -9,6 +9,7 @@ const app = express()
 const middleware = require('../middleware/auth')
 const Activity = require('./models/activity-schema')
 const Report = require('./models/report.model')
+const Event = require('./models/event-model')
 
 
 
@@ -42,6 +43,7 @@ app.get("/profile", middleware, async (req, res) => {
         data: user
     })
 })
+
 app.put("/profile", middleware, async (req, res) => {
     try {
         const userData = req.body
@@ -82,6 +84,206 @@ app.post("/report", middleware, async (req, res) => {
     }
 })
 
+app.get("/report/:id", middleware, async (req, res) => {
+    try {
+        const reportId = req.params.id
+        const report = await Report.findById(reportId)
+
+        res.status(200).json({
+            success: true,
+            data: report
+        })
+    } catch (error) {
+        res.status(400).json({
+            success: false,
+            message: error.message
+        })
+    }
+
+})
+
+app.put("/report/:id", middleware, async (req, res) => {
+    try {
+        const reportId = req.params.id
+        const data = req.body
+        const reportData = await Report.findByIdAndUpdate(reportId, data, { new: true })
+
+        if (!reportData) {
+            res.status(404).success("user not found")
+        }
+
+        res.status(200).json({
+            success: true,
+            data: reportData,
+            message: "Report Updated Successfully"
+        })
+    } catch (error) {
+        res.status(400).json({
+            success: false,
+            message: error.message
+        })
+    }
+
+})
+
+app.get("/report", middleware, async (req, res) => {
+    try {
+        const userId = req.userId
+        const { fromDate, toDate } = req.query
+
+        const startDate = fromDate ? new Date(fromDate) : new Date()
+        const endDate = toDate ? new Date(toDate) : new Date()
+
+        startDate.setHours(0, 0, 0, 0)
+        endDate.setHours(23, 59, 59, 999)
+
+        const getReport = await Report.find({ user_id: userId, deleted_at: null, createdAt: { $gte: startDate, $lte: endDate } }).sort({ createdAt: -1 })
+
+        res.status(200).json({
+            success: true,
+            data: getReport
+        })
+    } catch (error) {
+        res.status(400).json({
+            success: false,
+            data: error.message
+        })
+    }
+})
+
+app.get("/allreport", middleware, async (req, res) => {
+    try {
+        const userId = req.userId
+
+
+        const getReport = await Report.find({ user_id: userId, deleted_at: null }).sort({ createdAt: -1 })
+
+        res.status(200).json({
+            success: true,
+            data: getReport
+        })
+    } catch (error) {
+        res.status(400).json({
+            success: false,
+            data: error.message
+        })
+    }
+})
+
+app.post("/events", middleware, async (req, res) => {
+    try {
+        const { event_on, name, event_type } = req.body
+        const event = await Event.create({
+            event_on,
+            name,
+            event_type
+        })
+
+        res.status(201).json({
+            success: true,
+            message: "Event Created",
+            data: event
+        })
+
+    } catch (error) {
+        res.status(400).json({
+            success: false,
+            message: error.message
+        })
+    }
+
+})
+
+app.get("/events", middleware, async (req, res) => {
+    try {
+        const { event_type } = req.query
+
+        let event = null
+        if (event_type === "event") {
+             event = await Event.aggregate([
+                { $match: { event_type: "event"}},
+                {
+                    $addFields: {
+                        month: { $month: "$event_on" },         // this extract month 1-12
+                        day: { $dayOfMonth: "$event_on" },   // dayOfMongth extracts the month 1-31
+                    }
+                },
+                {
+                    $sort: { month: 1, day: 1 }
+                }
+            ])
+        }
+
+        if (event_type === "holiday") {
+            const now = new Date()
+            event = await Event.find({event_type: "holiday", event_on: { $gte: now}}).sort({ event_on: 1 })
+        }
+
+
+        res.status(200).json({
+            success: true,
+            data: event,
+        })
+    } catch (error) {
+        res.status(400).json({
+            success: false,
+            message: error.message
+        })
+    }
+})
+
+app.delete("/holiday/:id", middleware, async (req, res) => {
+    try {
+        const id = req.params.id
+        await Event.deleteById(id)
+
+        return res.json({
+            success: true,
+            message: "user deleted"
+        })
+
+    } catch (error) {
+        res.status(400).json({
+            success: false,
+            message: error.message
+        })
+    }
+})
+
+app.put("/holiday/:id", middleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const data = req.body;
+
+    const updatedHoliday = await Event.findByIdAndUpdate(
+      id,
+      data,
+      {
+        new: true,         
+        runValidators: true 
+      }
+    );
+
+    if (!updatedHoliday) {
+      return res.status(404).json({
+        success: false,
+        message: "Holiday not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Holiday updated successfully",
+      data: updatedHoliday,
+    });
+
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: error.message,
+    });
+  }
+});
 
 
 app.post("/activity", middleware, async (req, res) => {
@@ -162,7 +364,7 @@ app.post("/activity", middleware, async (req, res) => {
 
                 return res.json({
                     success: true,
-                    message: "Break completed and Punched out",
+                    message: "Break completed and Report has been submitted successfully.",
                     data: { punchOutData, BreakOutData }
                 })
             }
@@ -180,7 +382,7 @@ app.post("/activity", middleware, async (req, res) => {
 
             return res.json({
                 success: true,
-                message: "Punched out",
+                message: "Report has been submitted successfully.",
                 data: punchOutData
             })
 
@@ -444,3 +646,7 @@ app.delete("/remove/:id", async (req, res) => {
 })
 
 module.exports = app
+
+
+
+//? There are plugins to which you can use to soft delete a document like mongoose-delete 
