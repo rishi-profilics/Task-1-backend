@@ -2,7 +2,7 @@ require('dotenv').config()
 const express = require('express')
 const cors = require('cors')
 const bcrypt = require('bcrypt')
-const User = require('./models/user')
+// const User = require('./models/user')
 const userModel = require('./models/user-model')
 const jwt = require('jsonwebtoken')
 const app = express()
@@ -10,6 +10,11 @@ const middleware = require('../middleware/auth')
 const Activity = require('./models/activity-schema')
 const Report = require('./models/report.model')
 const Event = require('./models/event-model')
+const galleryRouter = require('./routes/gallery.route')
+const path = require("path")
+const projectRouter = require('./routes/project.route')
+const userRouter = require('./routes/user.route')
+const todoRouter = require('./routes/todo.route')
 
 
 
@@ -17,24 +22,15 @@ const Event = require('./models/event-model')
 app.use(cors())
 app.use(express.json())
 
-app.get("/users", async (req, res) => {
-    try {
-        const userData = await User.find({ isDeleted: false })
+app.use("/uploads", express.static(path.join(__dirname, "../src/uploads")))  // here we are making our public folder publically accessible because by default browser cannot due to security reasons
 
-        res.status(200).json({
-            success: true,
-            data: userData,
-            count: userData.length
-        })
+app.use("/api/gallery", galleryRouter)
 
-    } catch (error) {
-        res.status(400).json({
-            success: false,
-            message: error.message
-        })
-    }
+app.use("/api/project", projectRouter)
 
-})
+app.use("/api/user", userRouter)
+
+app.use("/api/todo", todoRouter)
 
 app.get("/profile", middleware, async (req, res) => {
     const user = await userModel.findById(req.userId).select("-password")
@@ -285,7 +281,6 @@ app.put("/holiday/:id", middleware, async (req, res) => {
   }
 });
 
-
 app.post("/activity", middleware, async (req, res) => {
     try {
         const userId = req.userId
@@ -481,22 +476,6 @@ app.get("/activity/today", middleware, async (req, res) => {
 
 })
 
-app.get("/user/:id", async (req, res) => {
-    try {
-        const userId = req.params.id
-        const getuser = await User.findById(userId)
-        res.status(200).json({
-            success: true,
-            data: getuser
-        })
-    } catch (error) {
-        res.status(400).json({
-            success: false,
-            message: error.message
-        })
-    }
-})
-
 app.post("/register", async (req, res) => {
     const { firstName, lastName, email, password } = req.body
 
@@ -545,7 +524,7 @@ app.post("/login", async (req, res) => {
             })
         }
         if (user && isMatch) {
-            const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: "1d" })
+            const token = jwt.sign({ userId: user._id, role: user.role }, process.env.JWT_SECRET)
             res.send({ token })
         }
 
@@ -556,94 +535,132 @@ app.post("/login", async (req, res) => {
     }
 })
 
-app.patch("/user/:id", async (req, res) => {
-    try {
-        const userId = req.params.id
-        const userData = req.body
-        console.log(userData)
-        const getuser = await User.findByIdAndUpdate(userId, userData, { new: true })
 
-        if (!getuser) {
-            res.status(404).success("user not found")
-        }
 
-        res.json({
-            success: true,
-            data: getuser,
-        })
 
-    } catch (error) {
-        res.status(400).json({
-            success: false,
-            message: error.message
-        })
-    }
-})
+// app.get("/users", async (req, res) => {
+//     try {
+//         const userData = await User.find({ isDeleted: false })
 
-app.post("/create", async (req, res) => {
-    try {
-        const user = await User.create(req.body)
-        res.status(201).json({
-            success: true,
-            data: user
-        })
-    } catch (error) {
-        res.status(400).json({
-            success: false,
-            message: error.message
-        })
-    }
-})
+//         res.status(200).json({
+//             success: true,
+//             data: userData,
+//             count: userData.length
+//         })
 
-app.patch("/deleteuser/:id", async (req, res) => {
-    try {
-        const userId = req.params.id
-        const getuser = await User.findByIdAndUpdate(userId, { isDeleted: true, deletedAt: new Date() }, { new: true })
+//     } catch (error) {
+//         res.status(400).json({
+//             success: false,
+//             message: error.message
+//         })
+//     }
 
-        if (!getuser) {
-            res.status(404).json({
-                success: false,
-                message: "user not found"
-            })
-        }
+// })
 
-        res.json({
-            success: true,
-            message: "User deleted successfully"
-        })
+// app.get("/user/:id", async (req, res) => {
+//     try {
+//         const userId = req.params.id
+//         const getuser = await User.findById(userId)
+//         res.status(200).json({
+//             success: true,
+//             data: getuser
+//         })
+//     } catch (error) {
+//         res.status(400).json({
+//             success: false,
+//             message: error.message
+//         })
+//     }
+// })
 
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: error.message
-        })
-    }
-})
+// app.patch("/user/:id", async (req, res) => {
+//     try {
+//         const userId = req.params.id
+//         const userData = req.body
+//         console.log(userData)
+//         const getuser = await User.findByIdAndUpdate(userId, userData, { new: true })
 
-app.delete("/remove/:id", async (req, res) => {
-    try {
-        const userId = req.params.id
-        const deleteUser = await User.findByIdAndDelete(userId)
+//         if (!getuser) {
+//             res.status(404).success("user not found")
+//         }
 
-        if (!deleteUser) {
-            res.status(404).json({
-                success: false,
-                message: "User not found"
-            })
-        }
+//         res.json({
+//             success: true,
+//             data: getuser,
+//         })
 
-        res.status(200).json({
-            success: true,
-            message: "User deleted successfully"
-        })
+//     } catch (error) {
+//         res.status(400).json({
+//             success: false,
+//             message: error.message
+//         })
+//     }
+// })
 
-    } catch (error) {
-        res.status(400).json({
-            success: false,
-            message: "Invalid user id"
-        })
-    }
-})
+// app.post("/create", async (req, res) => {
+//     try {
+//         const user = await User.create(req.body)
+//         res.status(201).json({
+//             success: true,
+//             data: user
+//         })
+//     } catch (error) {
+//         res.status(400).json({
+//             success: false,
+//             message: error.message
+//         })
+//     }
+// })
+
+// app.patch("/deleteuser/:id", async (req, res) => {
+//     try {
+//         const userId = req.params.id
+//         const getuser = await User.findByIdAndUpdate(userId, { isDeleted: true, deletedAt: new Date() }, { new: true })
+
+//         if (!getuser) {
+//             res.status(404).json({
+//                 success: false,
+//                 message: "user not found"
+//             })
+//         }
+
+//         res.json({
+//             success: true,
+//             message: "User deleted successfully"
+//         })
+
+//     } catch (error) {
+//         res.status(500).json({
+//             success: false,
+//             message: error.message
+//         })
+//     }
+// })
+
+// app.delete("/remove/:id", async (req, res) => {
+//     try {
+//         const userId = req.params.id
+//         const deleteUser = await User.findByIdAndDelete(userId)
+
+//         if (!deleteUser) {
+//             res.status(404).json({
+//                 success: false,
+//                 message: "User not found"
+//             })
+//         }
+
+//         res.status(200).json({
+//             success: true,
+//             message: "User deleted successfully"
+//         })
+
+//     } catch (error) {
+//         res.status(400).json({
+//             success: false,
+//             message: "Invalid user id"
+//         })
+//     }
+// })
 
 module.exports = app
 
