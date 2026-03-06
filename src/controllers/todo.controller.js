@@ -83,8 +83,48 @@ const getTodoController = async (req, res) => {
   }
 };
 
+const deleteTodoController = async (req, res) => {
+    try {
+      const id = req.params.id
+
+        await todoModel.deleteById(id)
+
+        return res.json({
+            success: true,
+            message: "Task has been deleted"
+        })
+
+    } catch (error) {
+        return res.status(400).json({
+            success: false,
+            message: error.message
+        })
+    }
+}
+
+const updateTodoController = async (req, res) => {
+  try {
+    const id = req.params.id
+    const data = req.body
+
+    await todoModel.findByIdAndUpdate(id, data)
+
+    res.status(200).json({
+      success: true,
+      message: "Task has been updated"
+    })
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    })
+  }
+}
+
 module.exports = {
   addTodoController,
   getTodoController,
   completeTodoController,
+  deleteTodoController,
+  updateTodoController
 };

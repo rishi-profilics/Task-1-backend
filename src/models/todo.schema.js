@@ -1,4 +1,5 @@
 const mongoose = require('mongoose')
+const MongooseDelete = require('mongoose-delete')
 
 const todoSchema = new mongoose.Schema({
     task: {
@@ -26,6 +27,12 @@ const todoSchema = new mongoose.Schema({
     }
 },{
     timestamps: true
+})
+
+todoSchema.plugin(MongooseDelete,{
+    deletedAt: true,
+    overrideMethods: true,
+    indexFields: true
 })
 
 const todoModel = mongoose.model("todo", todoSchema)
