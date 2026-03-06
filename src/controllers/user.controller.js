@@ -2,8 +2,8 @@ const userModel = require("../models/user-model");
 
 const getAllUsersController = async (req, res) => {
   try {
-    const users = await userModel.find();
-    const count = await userModel.countDocuments()
+    const users = await userModel.find({ role: { $ne: "admin" } });
+    const count = await userModel.countDocuments({ role: { $ne: "admin" } });
 
     if (!users || users.length === 0) {
       return res.status(400).json({

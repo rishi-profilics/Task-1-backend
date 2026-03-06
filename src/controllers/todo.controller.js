@@ -1,5 +1,4 @@
 const todoModel = require("../models/todo.schema");
-const userModel = require("../models/user-model");
 
 const addTodoController = async (req, res) => {
   try {
@@ -54,16 +53,23 @@ const completeTodoController = async (req, res) => {
 const getTodoController = async (req, res) => {
   try {
     const userId = req.userId;
+    const { search } = req.query;
 
-    const user = await userModel.findById(userId);
+    const isAdmin = req.role === "admin";
 
-    const isAdmin = user.role === "admin";
+    let searchFilter = {};
+
+    if (search) {
+      searchFilter.task = { $regex: search, $options: "i" };
+    }
 
     let todoList;
-    if (isAdmin) {
-      todoList = await todoModel.find({status: "pending"})
+    if (req.role === "admin") {
+      todoList = await todoModel.find(searchFilter).sort({ status: -1, due: 1 });
     } else {
-      todoList = await todoModel.find({ assignedto: userId, status: "pending" })
+      todoList = await todoModel
+        .find({ assignedto: userId })
+        .sort({ status: -1, due: 1 });
     }
 
     res.status(200).json({
