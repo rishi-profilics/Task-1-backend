@@ -11,9 +11,9 @@ const todoSchema = new mongoose.Schema({
         required: [true, "Due date is required"]
     },
     priority: {
-        type: String,
-        enum: ["low", "medium", "high"],
-        default: "low"
+        type: Number,
+        enum: [1 , 2, 3],
+        default: 1
     },
     assignedto:{
         type: [mongoose.Schema.Types.ObjectId],

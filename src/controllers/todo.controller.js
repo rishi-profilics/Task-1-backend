@@ -53,29 +53,47 @@ const completeTodoController = async (req, res) => {
 const getTodoController = async (req, res) => {
   try {
     const userId = req.userId;
-    const { search } = req.query;
-
-    const isAdmin = req.role === "admin";
-
+    const { search, sort } = req.query;
+    
     let searchFilter = {};
+    let sortOptions = { status: -1, createdAt: 1 };
+
+    if (sort === "high") {
+      sortOptions = { priority: -1 }; 
+    }
+
+    if (sort === "low") {
+      sortOptions = { priority: 1 };
+    }
+
+    if (sort === "complete") {
+      searchFilter.status = "completed";
+    }
+
+    if (sort === "pending") {
+      searchFilter.status = "pending";
+    }
+
 
     if (search) {
       searchFilter.task = { $regex: search, $options: "i" };
     }
 
     let todoList;
+
     if (req.role === "admin") {
-      todoList = await todoModel.find(searchFilter).sort({ status: -1, due: 1 });
+      todoList = await todoModel.find(searchFilter).sort(sortOptions);
     } else {
       todoList = await todoModel
-        .find({ assignedto: userId })
-        .sort({ status: -1, due: 1 });
+        .find({ assignedto: userId, ...searchFilter })
+        .sort(sortOptions); 
     }
 
     res.status(200).json({
       success: true,
       data: todoList,
     });
+
   } catch (error) {
     res.status(500).json({
       message: error.message,

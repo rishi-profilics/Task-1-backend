@@ -15,6 +15,7 @@ const path = require("path")
 const projectRouter = require('./routes/project.route')
 const userRouter = require('./routes/user.route')
 const todoRouter = require('./routes/todo.route')
+const referralRouter = require('./routes/referral.route')
 
 
 
@@ -31,6 +32,8 @@ app.use("/api/project", projectRouter)
 app.use("/api/user", userRouter)
 
 app.use("/api/todo", todoRouter)
+
+app.use("/api/referral", referralRouter)
 
 app.get("/profile", middleware, async (req, res) => {
     const user = await userModel.findById(req.userId).select("-password")
@@ -524,7 +527,7 @@ app.post("/login", async (req, res) => {
             })
         }
         if (user && isMatch) {
-            const token = jwt.sign({ userId: user._id, role: user.role }, process.env.JWT_SECRET)
+            const token = jwt.sign({ userId: user._id, role: user.role, email:user.email }, process.env.JWT_SECRET)
             res.send({ token })
         }
 
